@@ -4,6 +4,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Keyboard.h>
 #include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -12,33 +13,27 @@
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 #define MULTI_ADDRESS 0x70
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // LCD display for configs/presets
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-// config change button to change preset
-const int configKeyPin = 14;
-int configButtonState = 0;
-int configLastButtonState = 0;
+const byte ROWS = 3; //four rows
+const byte COLS = 2; //four columns
+//define the cymbols on the buttons of the keypads
+char hexaKeys[ROWS][COLS] = {
+  {'1','2'},
+  {'3','4'},
+  {'5','6'}
+};
+byte rowPins[ROWS] = {16, 15, 8}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {7, 6}; //connect to the column pinouts of the keypad
+
+//initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+
+// keep track of config position
 int configPosition = 1;
-
-// macro button keys
-const int macroButton1Pin = 5;
-const int macroButton2Pin = 6;
-const int macroButton3Pin = 7;
-const int macroButton4Pin = 8;
-
-int macroState1 = 0;
-int lastMacroState1 = 0;
-int macroState2 = 0;
-int lastMacroState2 = 0;
-int macroState3 = 0;
-int lastMacroState3 = 0;
-int macroState4 = 0;
-int lastMacroState4 = 0;
-
-
 
 // ICON BITMAPS
 const unsigned char copyIconBitmap [] PROGMEM = {
@@ -313,13 +308,7 @@ const unsigned char muteMicIconBitmap [] PROGMEM = {
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(configKeyPin, INPUT_PULLUP);
-  pinMode(macroButton1Pin, INPUT_PULLUP);
-  pinMode(macroButton2Pin, INPUT_PULLUP);
-  pinMode(macroButton3Pin, INPUT_PULLUP);
-  pinMode(macroButton4Pin, INPUT_PULLUP);
-
+  
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   TCA9548A(0);
   display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
@@ -340,30 +329,86 @@ void setup() {
   TCA9548A(4);
   lcd.init();
   lcd.backlight();
+
+  delay(1000);
 }
 
 void loop() {
-  configButtonState = digitalRead(configKeyPin);
-  
-  if (configButtonState != configLastButtonState) {
-    if (configButtonState == LOW) {
-      configPosition++;
-      TCA9548A(4);
-      lcd.setCursor(0, 1);
-      lcd.print("                    ");
-    
-      if (configPosition > 3)
-        configPosition = 1;
-          
-      else if (configPosition < 1)
-        configPosition = 3;
-    }
-    delay(100);
-  }
-  configLastButtonState = configButtonState;
+  char customKey = customKeypad.getKey();
 
+  if (customKey == '1') {
+    if (configPosition == 1) {
+      Keyboard.press(KEY_LEFT_CTRL);
+      Keyboard.press(142); // "c" key
+      delay(100);
+      Keyboard.release(KEY_LEFT_CTRL);
+      Keyboard.release(142);
+    }
+      
+  }
+
+  else if (customKey == '2') {
+      if (configPosition == 1) {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(118); // "v" key 
+        delay(100);
+        Keyboard.release(KEY_LEFT_CTRL);
+        Keyboard.release(118);
+      }
+  }
+
+  else if (customKey == '3') {
+    if (configPosition == 1) {
+      Keyboard.press(KEY_LEFT_CTRL);
+      Keyboard.press(65); // "a" key 
+      delay(100);
+      Keyboard.release(KEY_LEFT_CTRL);
+      Keyboard.release(65);
+    }
+      
+  }
+
+  else if (customKey == '4') {
+      if (configPosition == 1) {
+        Keyboard.press(KEY_LEFT_CTRL);
+        Keyboard.press(122); // "z" key 
+        delay(100);
+        Keyboard.release(KEY_LEFT_CTRL);
+        Keyboard.release(122);
+      }
+  }
+
+  else if (customKey == '5') {
+    configPosition--;
+    
+    if (configPosition > 3) {
+      configPosition = 1;
+    }
+    else if (configPosition < 1) {
+      configPosition = 3;
+    }
+    
+    TCA9548A(4);
+    lcd.setCursor(0, 1);
+    lcd.print("                    ");
+  }
+
+  else if (customKey == '6') {
+    configPosition++;
+    
+    if (configPosition > 3) {
+      configPosition = 1;
+    }
+    else if (configPosition < 1) {
+      configPosition = 3;
+    }
+    
+    TCA9548A(4);
+    lcd.setCursor(0, 1);
+    lcd.print("                    ");
+  }
+  
   configPositionManager(configPosition);
-  macroManager(configPosition);
 }
 
 void TCA9548A(uint8_t bus){
@@ -378,7 +423,7 @@ void configPositionManager(int pos) {
     lcd.setCursor(0, 0);
     lcd.print("PRESET:");
     lcd.setCursor(0, 1);
-    lcd.print("Text Editor");
+    lcd.print("Preset One");
 
     setConfigOne();
   }
@@ -386,15 +431,14 @@ void configPositionManager(int pos) {
   if (pos == 2) {
     TCA9548A(4);
     lcd.setCursor(0, 1);
-    lcd.print("Microsoft Teams");
-
+    lcd.print("Preset Two");
     setConfigTwo();
   }
 
   if (pos == 3) {
     TCA9548A(4);
     lcd.setCursor(0, 1);
-    lcd.print("Discord");
+    lcd.print("Preset Three");
 
     setConfigThree();
   }
@@ -402,131 +446,66 @@ void configPositionManager(int pos) {
 
 void setConfigOne(void) {
   TCA9548A(0);
-  display.setTextColor(WHITE); display.clearDisplay();
+  display.clearDisplay();
   display.drawBitmap(0, 0, copyIconBitmap, 128, 64, WHITE);
   display.display();
 
   TCA9548A(1);
-  display.setTextColor(WHITE); display.clearDisplay();
+  display.clearDisplay();
   display.drawBitmap(0, 0, pasteIconBitmap, 128, 64, WHITE);
   display.display();
 
   TCA9548A(2);
-  display.setTextColor(WHITE); display.clearDisplay();
+  display.clearDisplay();
   display.drawBitmap(0, 0, selectAllIconBitmap, 128, 64, WHITE);
   display.display();
 
   TCA9548A(3);
-  display.setTextColor(WHITE); display.clearDisplay();
+  display.clearDisplay();
   display.drawBitmap(0, 0, muteMicIconBitmap, 128, 64, WHITE);
   display.display();
 }
 
 void setConfigTwo(void) {
   TCA9548A(0);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO5");
+  display.clearDisplay();
+  display.setTextColor(WHITE); display.setTextSize(2); display.setCursor(30,25); display.print("MACRO5");
   display.display();
 
   TCA9548A(1);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO6");
+  display.clearDisplay();
+  display.setTextColor(WHITE); display.setTextSize(2); display.setCursor(30,25); display.print("MACRO6");
   display.display();
 
   TCA9548A(2);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO7");
+  display.clearDisplay();
+  display.setTextColor(WHITE); display.setTextSize(2); display.setCursor(30,25); display.print("MACRO7");
   display.display();
 
   TCA9548A(3);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO8");
+  display.clearDisplay();
+  display.setTextColor(WHITE); display.setTextSize(2); display.setCursor(30,25); display.print("MACRO8");
   display.display();
 }
 
 void setConfigThree(void) {
   TCA9548A(0);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO9");
+  display.clearDisplay();
+  display.setTextSize(2); display.setCursor(30,25); display.print("MACRO9");
   display.display();
 
   TCA9548A(1);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO10");
+  display.clearDisplay();
+  display.setTextSize(2); display.setCursor(30,25); display.print("MACRO10");
   display.display();
 
   TCA9548A(2);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO11");
+  display.clearDisplay();
+  display.setTextSize(2); display.setCursor(30,25); display.print("MACRO11");
   display.display();
 
   TCA9548A(3);
-  display.setTextColor(WHITE); display.clearDisplay();
-  display.setTextSize(2); display.setCursor(30,0); display.print("MACRO12");
+  display.clearDisplay();
+  display.setTextSize(2); display.setCursor(30,25); display.print("MACRO12");
   display.display();
-}
-
-void macroManager(int pos) {
-  macroState1 = digitalRead(macroButton1Pin); 
-  macroState2 = digitalRead(macroButton2Pin); 
-  macroState3 = digitalRead(macroButton3Pin); 
-  macroState4 = digitalRead(macroButton4Pin);
-
-  if (pos == 1) {
-    if (macroState1 != lastMacroState1) {
-      if (macroState1 == LOW) {
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(142); // "c" key
-        delay(100);
-        Keyboard.release(KEY_LEFT_CTRL);
-        Keyboard.release(142);
-      }
-      delay(100);
-    }
-    lastMacroState1 = macroState1;
-
-    if (macroState2 != lastMacroState2) {
-      if (macroState2 == LOW) {
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(118); // "v" key 
-        delay(100);
-        Keyboard.release(KEY_LEFT_CTRL);
-        Keyboard.release(118);
-      }
-      delay(100);
-    }
-    lastMacroState2 = macroState2;
-
-    if (macroState3 != lastMacroState3) {
-      if (macroState3 == LOW) {
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(65); // "a" key 
-        delay(100);
-        Keyboard.release(KEY_LEFT_CTRL);
-        Keyboard.release(65);
-      }
-      delay(100);
-    }
-    lastMacroState3 = macroState3;
-
-    if (macroState4 != lastMacroState4) {
-      if (macroState4 == LOW) {
-        Keyboard.press(KEY_LEFT_CTRL);
-        Keyboard.press(122); // "z" key 
-        delay(100);
-        Keyboard.release(KEY_LEFT_CTRL);
-        Keyboard.release(122);
-      }
-      delay(100);
-    }
-    lastMacroState4 = macroState4;
-  }
-  
-  if (pos == 2) {
-    
-  }
-  
-  if (pos == 3) {
-    
-  }
 }
