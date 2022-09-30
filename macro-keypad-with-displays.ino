@@ -33,30 +33,19 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 // keep track of config position
 int configPosition = 1;
 
-
-void TCA9548A(uint8_t bus){
-  Wire.beginTransmission(0x70);  // TCA9548A address is 0x70
-  Wire.write(1 << bus);          // send byte to select bus
-  Wire.endTransmission();
-}
-
 void setup() {
   Serial.begin(9600);
-  delay(1000);
   
   for (int i=-1; i <= 3; i++) {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     TCA9548A(i);
     display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
     display.clearDisplay();
-    display.display();
   }
 
   TCA9548A(4);
   lcd.init();
   lcd.backlight();
-
-  delay(500);
 }
 
 void loop() {
@@ -198,34 +187,41 @@ void configPositionManager(int pos) {
 }
 
 void setConfigOne(void) {
-  drawOled(0, "COPY");
-  drawOled(1, "PASTE");
-  drawOled(2, "SELECT ALL");
-  drawOled(3, "UNDO");
+  drawOled(0, "PASTE");
+  drawOled(1, "SELECT ALL");
+  drawOled(2, "UNDO");
+  drawOled(3, "COPY");
 }
 void setConfigTwo(void) {
-  drawOled(0, "TOGGLE MIC");
-  drawOled(1, "TOGGLE CAMERA");
-  drawOled(2, "SHARE SCREEN");
-  drawOled(3, "LEAVE MEETING");
+  drawOled(0, "TOGGLE CAMERA");
+  drawOled(1, "SHARE SCREEN");
+  drawOled(2, "LEAVE MEETING");
+  drawOled(3, "TOGGLE MIC");
 }
 
 void setConfigThree(void) {
-  drawOled(0, "RANDOM 1");
-  drawOled(1, "RANDOM 2");
-  drawOled(2, "RANDOM 3");
-  drawOled(3, "RANDOM 4");
+  drawOled(0, "RANDOM 2");
+  drawOled(1, "RANDOM 3");
+  drawOled(2, "RANDOM 4");
+  drawOled(3, "RANDOM 1");
 }
 
 
 void drawOled(int dis, String text) {
+  // the order for display may need to be modified based on wiring
+  // currently:
+  //TCA9548A(0) = 2nd OLED
+  //TCA9548A(0) = 3rd OLED
+  //TCA9548A(0) = 4th OLED
+  //TCA9548A(0) = 1st OLED
+
   TCA9548A(dis);
   display.display();
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.setCursor(0, 20);
-  display.println(text);
+  display.print(text);
 }
 
 
@@ -233,4 +229,10 @@ void drawLCD(String text) {
   TCA9548A(4);
   lcd.setCursor(0, 1);
   lcd.print(text);
+}
+
+void TCA9548A(uint8_t bus){
+  Wire.beginTransmission(0x70);  // TCA9548A address is 0x70
+  Wire.write(1 << bus);          // send byte to select bus
+  Wire.endTransmission();
 }
