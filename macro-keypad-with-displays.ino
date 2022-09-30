@@ -224,7 +224,7 @@ void drawOled(int dis, String text) {
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(WHITE);
-  display.setCursor(0, 30);
+  display.setCursor(0, 20);
   display.println(text);
 }
 
